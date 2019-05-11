@@ -1,15 +1,25 @@
 # import library socket karena akan menggunakan IPC socket
 import socket
 import json
-import threading
+import threading    
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 
+#menentukan alamat server
+server_address = ('localhost',4999)
+ 
+#ukuran buffer ketika menerima pesan
+SIZE = 1024
+ 
+#membuat objek socket
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ 
+#bind ke alamat server
+s.bind(server_address)
+ 
+#mendengarkan koneksi dari client
+s.listen(5)
 
-# change addr with ur server ip, example 192.168.100.23
-server = SimpleXMLRPCServer(("192.168.100.23", 13000))
-
-server.register_introspection_functions()
 
 lock = threading.Lock()
     
@@ -148,23 +158,51 @@ def transfer(account1, nama_penerima, ammount):
         return "Message : Hanya dapat diisi dengan nilai angka \n"
 
 
-def main():    
-    print("Server is starting .. ")
-    print("Server is ready")
-    server.register_function(login, "login")
-    server.register_function(get_account, "get_account")
-    server.register_function(readData, "readData")
-    server.register_function(update_rekening, "update_rekening")
-    server.register_function(update_account, "update_account")
-    server.register_function(balance_check, "balance_check")
-    server.register_function(deposit, "deposit")
-    server.register_function(withdraw, "withdraw")
-    server.register_function(change_value, "change_value")
-    server.register_function(tampilan_menu, "tampilan_menu")
-    server.register_function(transfer, "transfer")
-
-    server.serve_forever()
-
-   
+def main():
     
+    #siap menerima pesan terus-menerus dari client
+    while 1 :
+     print ("Waiting for connection")
+     
+     #menerima koneksi dari client
+     client, client_address = s.accept()
+     
+     print ("Connected from : ", client_address)
+     
+     while 1 :
+         #menerima pesan dari client
+         message = client.recv(SIZE)
+         account = client.recv(SIZE)
+         ammount = client.recv(SIZE)
+         message = message.decode('UTF-8')
+         print(message)
+         type(message)
+         if(message == "1"):
+             balik = deposit(account.decode("utf-8"),ammount.decode("utf-8"))
+         elif(message == "2"):
+             balik = withdraw(account.decode("utf-8"),ammount.decode("utf-8"))
+         elif(message == "3"):
+             balik = balance(account.decode("utf-8")
+         elif(message == "4"):
+             balik = transfer(account.decode("utf-8"), nama_penerima("utf-8"), ammount.decode("utf-8"))
+         else :
+             balik = "Inputan Salah"
+         
+         #jika tidak ada pesan, keluar dari while
+         if not message:
+             break
+             print (message)
+     
+     balik = bytes(balik, "utf-8")
+
+     #mengirimkan kembali pesan ke client
+     client.send(balik)
+     
+     #menutup client
+     client.close()
+     
+     #menutup socket
+     s.close()
+
+
 main()
